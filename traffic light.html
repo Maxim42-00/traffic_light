@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <title> Светофор </title>
+    <script type="text/javascript" src="react.js"> </script>
+    <script type="text/javascript" src="react-dom.js"> </script>
+    <script type="text/javascript" src="babel.js"> </script>
+</head>
+
+<body style="text-align: center;">
+    <div id="main"> </div>
+    <script type="text/babel">
+
+        class Box extends React.Component
+        {
+            constructor(props)
+            {
+                super(props);
+
+                if(!window.location.hash)
+                    window.location.hash = "/1";
+
+                document.addEventListener("finish", () => {
+                    this.prog_change_hash=true;
+                    if(window.location.hash=="#/1")
+                        window.location.hash="/2";
+                    else if(window.location.hash=="#/2")
+                        window.location.hash="/3";
+                    else if(window.location.hash=="#/3")
+                        window.location.hash="/1";
+                    this.setState({hash: window.location.hash});
+                });
+                this.state={
+                    second_left: 10,
+                    opacity: {
+                        sv_red: 1,
+                        sv_yellow: 0.3,
+                        sv_green: 0.3
+                    },
+                    hash: window.location.hash
+                };
+                this.prog_change_hash=false;
+                this.changeHash = this.changeHash.bind(this);
+            }
+            componentDidMount()
+            {
+                window.addEventListener("hashchange", this.changeHash, false);
+            }
+            componentWillUnmount()
+            {
+                window.removeEventListener("hashchange", this.changeHash, false);
+            }
+            changeHash()
+            {
+                if(this.prog_change_hash)
+                {
+                    this.prog_change_hash=false;
+                    return;
+                }
+                this.setState({hash: window.location.hash});
+            }
+            render()
+            {
+                this.bstyle={
+                    display: "inline-block",
+                    width: "300px",
+                    height: "700px",
+                    backgroundColor: "black",
+                    borderRadius: "50px"
+                };
+                if(window.location.hash=="#/1")
+                {
+                    return (
+                        <div style={this.bstyle}> 
+                            <Intermediate second_left={10} curLight={{sv_red: 1,sv_yellow: 0.3,sv_green: 0.3}} />
+                        </div>
+                    );
+                }
+                if(window.location.hash=="#/2")
+                {
+                    return (
+                        <div style={this.bstyle}> 
+                            <Intermediate second_left={3} curLight={{sv_red: 0.3,sv_yellow: 1,sv_green: 0.3}} />
+                        </div>
+                    );
+                }
+                if(window.location.hash=="#/3")
+                {
+                    return (
+                        <div style={this.bstyle}> 
+                            <Intermediate second_left={15} curLight={{sv_red: 0.3,sv_yellow: 0.3,sv_green: 1}} />
+                        </div>
+                    );
+                }
+            }
+        };
+
+        class Intermediate extends React.Component
+        {
+            constructor(props)
+            {
+                super(props);
+                this.state={
+                    second_left: this.props.second_left,
+                    opacity: this.props.curLight
+                };
+                this.mig=false;
+                this.shine=1;
+                this.last_light;
+                this.timer;
+            }
+            componentDidMount()
+            {
+                this.f_update();
+            }
+            componentDidUpdate()
+            {
+                this.f_update();
+            }
+            componentWillReceiveProps(props)
+            {
+                this.state.opacity=props.curLight;
+                this.state.second_left=props.second_left;
+                this.mig=false;
+                clearTimeout(this.timer);
+            }
+            f_update()
+            {
+                if(this.state.second_left == 0)
+                {
+                    this.mig=false;
+                    let E = new Event("finish", {bubbles: true});
+                    document.dispatchEvent(E);
+                    return;
+                }
+                if((this.state.second_left == 4) && (this.state.opacity.sv_yellow!=1))
+                {
+                    this.mig=true;
+                }
+                if(this.mig)
+                {
+                    let sub_light;
+                    if(this.shine)
+                    {
+                        sub_light={sv_red: 0.3,sv_yellow: 0.3,sv_green: 0.3};
+                        this.last_light=this.state.opacity;
+                        this.shine=false;
+                    }
+                    else
+                    {
+                        sub_light=this.last_light;
+                        this.shine=true;
+                    }
+                    this.timer=setTimeout( () => {
+                        this.setState({second_left: this.state.second_left-0.5, opacity: sub_light});
+                    }, 500);
+                    return;
+                }
+                this.timer=setTimeout( () => {
+                    this.setState({second_left: this.state.second_left-1});
+                }, 1000);
+            }
+            render()
+            {
+                return (
+                    <div> 
+                        <Light color={`rgba(255,0,0,${this.state.opacity.sv_red})`}> </Light>
+                        <Light color={`rgba(255,255,0,${this.state.opacity.sv_yellow})`} 
+                               font_color={this.state.opacity.sv_red==1 ? "red" : (this.state.opacity.sv_yellow==1 ? "yellow" : "green")}> 
+                                   {this.shine ? this.state.second_left : ""} 
+                        </Light>
+                        <Light color={`rgba(0,210,0,${this.state.opacity.sv_green})`}> </Light>
+                    </div>
+                );
+            }
+        };
+
+        class Light extends React.Component
+        {
+            constructor(props)
+            {
+                super(props);
+            }
+            render()
+            {
+                this.ltstyle={
+                    display: "inline-block",
+                    width: "200px",
+                    height: "200px",
+                    borderRadius: "100px",
+                    marginTop: "25px",
+                    verticalAlign: "top",
+                    backgroundColor: this.props.color,
+                    fontSize: "150px",
+                    color: this.props.font_color
+                };
+                return (
+                    <div style={this.ltstyle}> {this.props.children} </div>
+                );
+            }
+        };
+
+
+        ReactDOM.render(
+            <Box />,
+            document.querySelector("#main")
+        );
+    </script>
+</body>
+
+</html>
